@@ -21,7 +21,7 @@ func main() {
 		log.Fatal(err)
 	}
 	// AutoMigrate Book entity
-	if err := db.AutoMigrate(&entity.Book{}, &entity.User{}); err != nil {
+	if err := db.AutoMigrate(&entity.Book{}, &entity.User{}, &entity.AuthToken{}); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}
 
