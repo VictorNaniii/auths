@@ -16,6 +16,9 @@ type User struct {
 	LastName  string `gorm:"size:255"`
 	Email     string `gorm:"size:255;unique"`
 	Password  string `gorm:"size:255"`
+
+	// Adding relation to Books
+	Books []Book `gorm:"foreignKey:UserId"`
 }
 
 func (User) TableName() string {

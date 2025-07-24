@@ -4,10 +4,11 @@ import (
 	"auth/internal/entity"
 	"auth/internal/model"
 	"auth/internal/repository"
+	"github.com/google/uuid"
 )
 
 type IBookService interface {
-	AddBook(book model.BookRes) (string, error)
+	AddBook(book model.BookRes, userId uuid.UUID) (string, error)
 	GetAllBooks() ([]entity.Book, error)
 	EditBook(id string, book model.ChangeData) (entity.Book, error)
 }
@@ -20,9 +21,10 @@ func NewBookService(repo repository.BooksRepository) IBookService {
 	return &BookService{repo: repo}
 }
 
-func (s *BookService) AddBook(book model.BookRes) (string, error) {
-	return s.repo.AddBook(book)
+func (s *BookService) AddBook(book model.BookRes, userId uuid.UUID) (string, error) {
+	return s.repo.AddBook(book, userId)
 }
+
 func (s *BookService) GetAllBooks() ([]entity.Book, error) {
 	result, err := s.repo.GetAllBooks()
 	if err != nil {

@@ -4,6 +4,7 @@ import (
 	"auth/internal/entity"
 	"auth/internal/model"
 	"auth/internal/service"
+	"github.com/google/uuid"
 )
 
 type BookHandler struct {
@@ -14,8 +15,8 @@ func NewBookHandler(svc service.IBookService) *BookHandler {
 	return &BookHandler{service: svc}
 }
 
-func (h *BookHandler) AddBook(book model.BookRes) (string, error) {
-	return h.service.AddBook(book)
+func (h *BookHandler) AddBook(book model.BookRes, userId uuid.UUID) (string, error) {
+	return h.service.AddBook(book, userId)
 }
 
 func (h *BookHandler) GetAllBook() ([]entity.Book, error) {

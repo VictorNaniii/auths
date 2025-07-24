@@ -20,7 +20,11 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	// AutoMigrate Book entity
+	//AutoMigrate Book entity
+	//if err := db.Migrator().DropTable(&entity.Book{}, &entity.User{}, &entity.AuthToken{}); err != nil {
+	//	log.Fatal(err)
+	//}
+
 	if err := db.AutoMigrate(&entity.Book{}, &entity.User{}, &entity.AuthToken{}); err != nil {
 		log.Fatalf("Migration failed: %v", err)
 	}

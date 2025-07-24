@@ -1,9 +1,9 @@
 package model
 
 type BookRes struct {
-	Title       string `json:"title"`
-	Author      string `json:"author"`
-	Description string `json:"description"`
+	Title       string `json:"title" required:"true"`
+	Author      string `json:"author" required:"true"`
+	Description string `json:"description" required:"true"`
 }
 
 type ChangeData struct {

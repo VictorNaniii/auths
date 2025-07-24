@@ -3,6 +3,9 @@ package handler
 import (
 	"auth/internal/auth"
 	"auth/internal/service"
+	"errors"
+	"github.com/gin-gonic/gin"
+	"net/http"
 )
 
 type User struct {
@@ -21,19 +24,19 @@ func NewUserHandler(authService service.AuthService) *UserHandler {
 	return &UserHandler{authService: authService}
 }
 
-func (h *UserHandler) Login(data auth.LoginUser) (string, error) {
+func (h *UserHandler) Login(data auth.LoginUser) (string, string, error) {
 
-	loginUser, token, err := h.authService.Login(data)
+	loginUser, accessToken, refreshToken, err := h.authService.Login(data)
 
 	if err != nil {
-		return "error", err
+		return "", "", err
 	}
 
 	if !loginUser {
-		return "Wrong credentials", nil
+		return "", "", errors.New("Wrong credentials")
 	}
 
-	return token, nil
+	return accessToken, refreshToken, nil
 }
 
 func (h *UserHandler) Register(data auth.RegisterUser) (string, error) {
@@ -48,4 +51,43 @@ func (h *UserHandler) Register(data auth.RegisterUser) (string, error) {
 	}
 
 	return "Register success", nil
+}
+
+func (h *UserHandler) RefreshToken(c *gin.Context) {
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	access, refresh, err := h.authService.Refresh(body.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{
+		"access_token":  access,
+		"refresh_token": refresh,
+	})
+}
+
+func (h *UserHandler) Logout(c *gin.Context) {
+	var body struct {
+		RefreshToken string `json:"refresh_token"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	err := h.authService.Logout(body.RefreshToken)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"message": "Successfully logged out"})
 }

@@ -46,31 +46,91 @@ func (r *AuthService) Register(data auth.RegisterUser) (bool, error) {
 	return true, nil
 }
 
-func (r *AuthService) Login(data auth.LoginUser) (bool, string, error) {
+func (r *AuthService) Login(data auth.LoginUser) (bool, string, string, error) {
 	isValid := data.Validate()
 
 	if isValid != nil {
-		return false, "", fmt.Errorf("Invalid data user: %w", isValid)
+		return false, "", "", fmt.Errorf("Invalid data user: %w", isValid)
 	}
 
 	isRightPassword, _ := r.repo.ChekPasswordHas(data.Email, data.Password)
 
 	if !isRightPassword {
-		return false, "", errors.New("Invalid User")
+		return false, "", "", errors.New("Invalid User")
 	}
 	getUserId, err := r.repo.GetUserId(data)
 
 	accessToken, err := GenerateAccessToken(getUserId)
 	if err != nil {
-		return false, "", err
+		return false, "", "", err
 	}
-	rawToken, refreshToken := CreateRefreshToken()
-
-	if err := r.repo.StoreRefreshToken(accessToken, rawToken, refreshToken); err != nil {
-		return false, "", fmt.Errorf("Store Refresh Token: %w", err)
+	rawRefreshToken, hashedRefreshToken := CreateRefreshToken()
+	expirationDate := time.Now().Add(config.ExpireRefreshToken)
+	if err := r.repo.StoreRefreshToken(getUserId, hashedRefreshToken, expirationDate); err != nil {
+		return false, "", "", fmt.Errorf("Store Refresh Token: %w", err)
 	}
 
-	return true, accessToken, nil
+	return true, accessToken, rawRefreshToken, nil
+}
+
+func (s *AuthService) Refresh(oldToken string) (access, refresh string, err error) {
+	// Hash the incoming raw token to find it in the database
+	hash := sha256.Sum256([]byte(oldToken + config.SaltForRefreshToken))
+	hashedToken := base64.URLEncoding.EncodeToString(hash[:])
+
+	rt, err := s.repo.FindRefreshToken(hashedToken)
+	if err != nil {
+		return "", "", errors.New("Refresh token is invalid")
+	}
+
+	// Check if token is expired
+	if time.Now().After(rt.ExpireDate) {
+		// Clean up expired token
+		if err := s.repo.DeleteRefresh(rt.UserId, hashedToken); err != nil {
+			// Log error but continue with the main error response
+		}
+		return "", "", errors.New("Refresh token has expired")
+	}
+
+	// Generate new access token
+	access, err = GenerateAccessToken(rt.UserId)
+	if err != nil {
+		return "", "", err
+	}
+
+	// Generate new refresh token
+	rawRefreshToken, newHashedRefreshToken := CreateRefreshToken()
+	newExpirationDate := time.Now().Add(config.ExpireRefreshToken)
+
+	// Delete old refresh token
+	if err := s.repo.DeleteRefresh(rt.UserId, hashedToken); err != nil {
+		return "", "", err
+	}
+
+	// Store new refresh token
+	if err := s.repo.StoreRefreshToken(rt.UserId, newHashedRefreshToken, newExpirationDate); err != nil {
+		return "", "", err
+	}
+
+	return access, rawRefreshToken, nil
+}
+
+func (s *AuthService) Logout(refreshToken string) error {
+	// Hash the incoming raw token to find it in the database
+	hash := sha256.Sum256([]byte(refreshToken + config.SaltForRefreshToken))
+	hashedToken := base64.URLEncoding.EncodeToString(hash[:])
+
+	rt, err := s.repo.FindRefreshToken(hashedToken)
+	if err != nil {
+		return errors.New("Invalid refresh token")
+	}
+
+	// Delete the refresh token
+	if err := s.repo.DeleteRefresh(rt.UserId, hashedToken); err != nil {
+		return err
+	}
+
+	return nil
 }
 
 func HashPassword(password string) (string, error) {

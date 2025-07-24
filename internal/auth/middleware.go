@@ -5,7 +5,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/go-playground/validator/v10"
 	"github.com/golang-jwt/jwt/v5"
+	"github.com/google/uuid"
 	"net/http"
+	"strings"
 )
 
 type RegisterUser struct {
@@ -45,6 +47,7 @@ func (i LoginUser) Validate() error {
 
 func AuthentificateMiddleware(c *gin.Context) {
 	tokenFromCokie, err := c.Cookie("token")
+
 	if err != nil {
 		c.AbortWithStatus(http.StatusUnauthorized)
 	}
@@ -71,5 +74,59 @@ func VerifyToken(token string) error {
 	}
 
 	return nil
+}
+func AuthMiddleware(c *gin.Context) {
+	authz := c.GetHeader("Authorization")
+	parts := strings.SplitN(authz, " ", 2)
+	if len(parts) != 2 || parts[0] != "Bearer" {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
 
+	err := VerifyToken(parts[1])
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+		return
+	}
+
+	//c.Set("userID", userID)
+	c.Next()
+}
+func GetUserIDFromToken(c *gin.Context) {
+	tokenStr, err := c.Cookie("token")
+	if err != nil {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Token missing"})
+		return
+	}
+
+	token, err := jwt.Parse(tokenStr, func(token *jwt.Token) (interface{}, error) {
+		if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
+			return nil, jwt.ErrInvalidKeyType
+		}
+		return config.SecretKey, nil
+	})
+
+	if err != nil || !token.Valid {
+		c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid token"})
+		return
+	}
+
+	if claims, ok := token.Claims.(jwt.MapClaims); ok {
+		subj, ok := claims["subj"].(string)
+		if !ok {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid subject"})
+			return
+		}
+
+		userID, err := uuid.Parse(subj)
+		if err != nil {
+			c.JSON(http.StatusUnauthorized, gin.H{"error": "Invalid UUID"})
+			return
+		}
+		c.Set("userID", userID.String())
+		//c.JSON(http.StatusOK, gin.H{"user_id": userID})
+		return
+	}
+
+	c.JSON(http.StatusUnauthorized, gin.H{"error": "Failed to extract claims"})
 }

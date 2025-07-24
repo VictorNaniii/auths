@@ -6,7 +6,7 @@ import (
 )
 
 type AuthToken struct {
-	ID    string `gorm:"primary_key"`
+	ID    uint   `gorm:"primaryKey;autoIncrement:true;unique"`
 	Token string `gorm:"gorm:type:text"`
 
 	ExpireDate time.Time `gorm:"type:timestamp"`
