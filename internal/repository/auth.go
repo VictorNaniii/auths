@@ -3,6 +3,7 @@ package repository
 import (
 	"auth/internal/auth"
 	"auth/internal/entity"
+	"github.com/google/uuid"
 	"golang.org/x/crypto/bcrypt"
 
 	"gorm.io/gorm"
@@ -61,6 +62,22 @@ func (c *AuthRepository) ChekPasswordHas(email string, password string) (bool, e
 
 	return false, nil
 }
+
+func (c *AuthRepository) GetUserId(data auth.LoginUser) (uuid.UUID, error) {
+	var user entity.User
+	isExist := c.db.Where("email = ? ", data.Email).First(&user)
+	if isExist.Error != nil {
+		return uuid.Nil, isExist.Error
+	}
+
+	return user.ID, nil
+}
+
+func (c *AuthRepository) StoreRefreshToken(userId uuid.UUID, rawToken string, refreshToken string) error {
+
+	return nil
+}
+
 func CheckPasswordHash(password string, hash string) bool {
 	err := bcrypt.CompareHashAndPassword([]byte(hash), []byte(password))
 	return err == nil

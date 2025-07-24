@@ -1,6 +1,7 @@
 package handler
 
 import (
+	"auth/config"
 	"auth/internal/auth"
 	"auth/internal/model"
 	"net/http"
@@ -10,7 +11,7 @@ import (
 
 // SetupBookRoutes sets up only the book routes
 func SetupBookRoutes(router *gin.Engine, bookHandler *BookHandler, userHandler *UserHandler) {
-	router.POST("/books", func(c *gin.Context) {
+	router.POST("/books", auth.AuthentificateMiddleware, func(c *gin.Context) {
 		var book model.BookRes
 		if err := c.ShouldBindJSON(&book); err != nil {
 			c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
@@ -23,7 +24,7 @@ func SetupBookRoutes(router *gin.Engine, bookHandler *BookHandler, userHandler *
 		}
 		c.JSON(http.StatusOK, gin.H{"message": msg, "book": book})
 	})
-	router.GET("/books", func(c *gin.Context) {
+	router.GET("/books", auth.AuthentificateMiddleware, func(c *gin.Context) {
 		data, err := bookHandler.GetAllBook()
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -31,7 +32,7 @@ func SetupBookRoutes(router *gin.Engine, bookHandler *BookHandler, userHandler *
 		c.JSON(http.StatusOK, gin.H{"data": data})
 	})
 
-	router.PUT("/books/:id", func(c *gin.Context) {
+	router.PUT("/books/:id", auth.AuthentificateMiddleware, func(c *gin.Context) {
 		id := c.Param("id")
 
 		var dataToUpdate model.ChangeData
@@ -65,8 +66,9 @@ func SetupBookRoutes(router *gin.Engine, bookHandler *BookHandler, userHandler *
 		if err != nil {
 			c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		}
-
-		c.JSON(http.StatusOK, gin.H{"result": result})
+		c.SetCookie("token", result, int(config.ExpJWT), "/", "", false, true)
+		//c.JSON(http.StatusOK, gin.H{"token": result})||TODO:IF im not using cookies
+		c.JSON(http.StatusOK, gin.H{"result": "Success"})
 	})
 
 	router.POST("/register", func(c *gin.Context) {

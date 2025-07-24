@@ -23,7 +23,13 @@ func NewBookRepository(db *gorm.DB) *BookRepository {
 }
 
 func (r *BookRepository) AddBook(book model.BookRes) (string, error) {
-	if err := r.db.Create(&book).Error; err != nil {
+	//var createBook entity.Book
+	createBook := entity.Book{
+		Title:       book.Title,
+		Author:      book.Author,
+		Description: book.Description,
+	}
+	if err := r.db.Create(&createBook).Error; err != nil {
 		return "error", err
 	}
 	return "Book was successfully added: " + book.Title, nil

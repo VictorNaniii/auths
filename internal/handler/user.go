@@ -23,7 +23,7 @@ func NewUserHandler(authService service.AuthService) *UserHandler {
 
 func (h *UserHandler) Login(data auth.LoginUser) (string, error) {
 
-	loginUser, err := h.authService.Login(data)
+	loginUser, token, err := h.authService.Login(data)
 
 	if err != nil {
 		return "error", err
@@ -33,7 +33,7 @@ func (h *UserHandler) Login(data auth.LoginUser) (string, error) {
 		return "Wrong credentials", nil
 	}
 
-	return "Authorization success", nil
+	return token, nil
 }
 
 func (h *UserHandler) Register(data auth.RegisterUser) (string, error) {
@@ -46,6 +46,6 @@ func (h *UserHandler) Register(data auth.RegisterUser) (string, error) {
 	if !registerUser {
 		return "User alredy exist exist", nil
 	}
-	
+
 	return "Register success", nil
 }

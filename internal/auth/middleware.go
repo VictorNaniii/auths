@@ -1,6 +1,12 @@
 package auth
 
-import "github.com/go-playground/validator/v10"
+import (
+	"auth/config"
+	"github.com/gin-gonic/gin"
+	"github.com/go-playground/validator/v10"
+	"github.com/golang-jwt/jwt/v5"
+	"net/http"
+)
 
 type RegisterUser struct {
 	FirstName string `json:"first_name" validate:"required"`
@@ -35,4 +41,35 @@ func (i LoginUser) Validate() error {
 		return err
 	}
 	return nil
+}
+
+func AuthentificateMiddleware(c *gin.Context) {
+	tokenFromCokie, err := c.Cookie("token")
+	if err != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+	}
+
+	ok := VerifyToken(tokenFromCokie)
+
+	if ok != nil {
+		c.AbortWithStatus(http.StatusUnauthorized)
+	}
+
+	c.Next()
+}
+
+func VerifyToken(token string) error {
+	tokenVerify, err := jwt.Parse(token, func(token *jwt.Token) (interface{}, error) {
+		return config.SecretKey, nil
+	})
+	if err != nil {
+		return err
+	}
+
+	if !tokenVerify.Valid {
+		return err
+	}
+
+	return nil
+
 }
