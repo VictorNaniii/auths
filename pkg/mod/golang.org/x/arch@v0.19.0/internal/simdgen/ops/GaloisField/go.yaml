@@ -1,0 +1,35 @@
+!sum
+- go: GaloisFieldAffineTransformMasked
+  asm: VGF2P8AFFINEQB
+  operandOrder: 2I # 2nd operand, then immediate
+  in: &AffineArgs
+  - class: mask
+    name: m
+  - &uint8
+    go: $t
+    base: uint
+  - &uint8x8
+    go: $t2
+    base: uint
+  - &pureImmVar
+    class: immediate
+    immOffset: 0
+    name: b
+  out:
+  - *uint8
+
+- go: GaloisFieldAffineTransformInversedMasked
+  asm: VGF2P8AFFINEINVQB
+  operandOrder: 2I # 2nd operand, then immediate
+  in: *AffineArgs
+  out:
+  - *uint8
+
+- go: GaloisFieldMulMasked
+  asm: VGF2P8MULB
+  in:
+  - class: mask
+  - *uint8
+  - *uint8
+  out:
+  - *uint8

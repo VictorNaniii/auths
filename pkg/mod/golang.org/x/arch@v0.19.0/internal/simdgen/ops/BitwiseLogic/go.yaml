@@ -1,0 +1,79 @@
+!sum
+# In the XED data, *all* floating point bitwise logic operation has their
+# operand type marked as uint. We are not trying to understand why Intel
+# decided that they want FP bit-wise logic operations, but this irregularity
+# has to be dealed with in separate rules with some overwrites.
+
+# Int/Uint operations.
+# Non-masked for 128/256-bit vectors
+# For binary operations, we constrain their two inputs and one output to the
+# same Go type using a variable. This will map to instructions before AVX512.
+- go: And
+  asm: "VPAND"
+  in:
+  - &any
+    go: $t
+  - *any
+  out:
+  - *any
+# Masked
+# Looks like VPAND$xi works only for 2 shapes for integer:
+# Dword and Qword.
+# TODO: should we wildcard other smaller elemBits to VPANDQ or
+# VPANDD? Looks like elemBits doesn't really matter afterall in bitwise operations.
+- go: AndMasked
+  asm: "VPAND[DQ]"
+  in:
+  - class: mask
+  - *any
+  - *any
+  out:
+  - *any
+
+- go: AndNot
+  asm: "VPANDN"
+  in:
+  - *any
+  - *any
+  out:
+  - *any
+- go: AndNotMasked
+  asm: "VPANDN[DQ]"
+  in:
+  - class: mask
+  - *any
+  - *any
+  out:
+  - *any
+
+- go: Or
+  asm: "VPOR"
+  in:
+  - *any
+  - *any
+  out:
+  - *any
+- go: OrMasked
+  asm: "VPOR[DQ]"
+  in:
+  - class: mask
+  - *any
+  - *any
+  out:
+  - *any
+
+- go: Xor
+  asm: "VPXOR"
+  in:
+  - *any
+  - *any
+  out:
+  - *any
+- go: XorMasked
+  asm: "VPXOR[DQ]"
+  in:
+  - class: mask
+  - *any
+  - *any
+  out:
+  - *any
